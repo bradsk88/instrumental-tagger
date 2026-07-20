@@ -11,11 +11,17 @@ to generate playlists of "instrumental" music; great for focusing.
 Basic working container. Agentic coded. Will human review and remove any
 junk ASAP.
 
-# TODO
+# Configuration
 
-Planning to add:
-- Option to tag all songs with "INSTRUMENTAL_CONFIDENCE" tag - preserving 
-  analysis results
-- Option to re-tag all songs using the confidence tag but with a different
-  user-decided threshold for what accounts for "instrumental" (default 50%)
-- Option to skip re-analysis for tracks that already have a confidence tag.
+All options are set via environment variables:
+
+- `INSTRUMENTAL_THRESHOLD` (default `50`) — confidence percentage (0-100) at or
+  above which a track is labeled INSTRUMENTAL. Change it and re-run to re-label
+  the whole library from stored confidence, without re-analyzing.
+- `STORE_CONFIDENCE` (default `true`) — writes the raw ML confidence to an
+  `INSTRUMENTAL_CONFIDENCE` tag (0-100%), preserving analysis results.
+- `SKIP_ANALYZED` (default `true`) — tracks that already have a confidence tag
+  are re-labeled from that value instead of being re-analyzed. Set to `false`
+  to force fresh ML analysis of everything.
+- `FORCE_RETAG` (default `false`) — overwrites existing tags with fresh ML
+  predictions, ignoring stored confidence.
