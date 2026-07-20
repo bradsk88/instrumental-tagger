@@ -83,7 +83,7 @@ def tag_file(filepath, is_instrumental, ext):
             except ID3NoHeaderError:
                 audio = EasyID3()
             audio['instrumental'] = tag_val
-            audio.save()
+            audio.save(filepath)
         elif ext == '.wav':
             audio = WAVE(filepath)
             if audio.tags is None:
