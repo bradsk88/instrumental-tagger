@@ -216,9 +216,17 @@ def label_for(confidence_pct):
     return confidence_pct >= INSTRUMENTAL_THRESHOLD
 
 def process_file(filepath):
+    """
+    Processes a single audio file.
+
+    Returns a dict describing a freshly ML-analyzed track
+    ({'filename', 'status', 'confidence'}) so the caller can summarize the newly
+    updated tracks at the end of the scan. Returns None for skipped or
+    re-labeled-from-cache tracks (nothing new was analyzed).
+    """
     _, ext = os.path.splitext(filepath.lower())
     if ext not in ['.mp3', '.flac', '.wav']:
-        return
+        return None
 
     filename = os.path.basename(filepath)
 
@@ -234,13 +242,13 @@ def process_file(filepath):
                   f"-> {status}): {filename}", flush=True)
         else:
             print(f"❌ Failed to re-label: {filename}", flush=True)
-        return
+        return None
 
     # Otherwise fall back to the existing label tag to decide whether to skip.
     existing_tag = get_existing_tag(filepath, ext)
     if existing_tag is not None and stored_confidence is None and not FORCE_RETAG:
         print(f"⏭️  Already Tagged as {existing_tag}: {filename}", flush=True)
-        return
+        return None
 
     # Run ML analysis
     prefix = f"🔄 Re-analyzing (Was {existing_tag}): " if existing_tag else "🔍 Analyzing: "
@@ -253,10 +261,12 @@ def process_file(filepath):
         if tag_file(filepath, is_instrumental, ext, confidence):
             status = "INSTRUMENTAL (1)" if is_instrumental else "VOCAL (0)"
             print(f" Done! -> Tagged as {status} (Conf: {confidence:.1f}%)", flush=True)
+            return {"filename": filename, "status": status, "confidence": confidence}
         else:
             print(" Failed to tag.", flush=True)
     else:
         print(" Failed to analyze.", flush=True)
+    return None
 
 def main():
     print("==================================================", flush=True)
@@ -275,11 +285,24 @@ def main():
     total = len(files)
     print(f"Found {total} audio files in /music.", flush=True)
     
+    analyzed = []
     for idx, f in enumerate(files, 1):
         print(f"\n[{idx}/{total}] ", end="", flush=True)
-        process_file(f)
-        
+        result = process_file(f)
+        if result is not None:
+            analyzed.append(result)
+
     print("\n🎉 Scan completed successfully! Shutting down container.", flush=True)
+
+    # Summarize the tracks that were actually analyzed this run (the rest were
+    # skipped or re-labeled from cache). Handy when only a handful were new.
+    if analyzed:
+        print("\n==================================================", flush=True)
+        print(f"🔬 Analyzed {len(analyzed)} of {total} track(s) this run:", flush=True)
+        for entry in analyzed:
+            print(f"   • {entry['status']} (Conf: {entry['confidence']:.1f}%) "
+                  f"{entry['filename']}", flush=True)
+        print("==================================================", flush=True)
 
 if __name__ == "__main__":
     main()
