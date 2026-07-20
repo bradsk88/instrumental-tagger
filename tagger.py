@@ -31,7 +31,8 @@ CLASSIFIER_MODEL = "/app/models/voice_instrumental-audioset-vggish-1.pb"
 
 # Set this to True to overwrite previously written tags with fresh ML predictions.
 # Set it to False once your library is clean to make future scans ultra-fast.
-FORCE_RETAG = True 
+# Override via the FORCE_RETAG env var (e.g. FORCE_RETAG=1 or FORCE_RETAG=true).
+FORCE_RETAG = os.environ.get("FORCE_RETAG", "false").strip().lower() in ("1", "true", "yes", "on")
 # ==============================================================================
 
 # Register custom tag mapping for EasyID3
