@@ -171,9 +171,24 @@ def analyze_track_ml(filepath):
     The caller applies INSTRUMENTAL_THRESHOLD to decide the final label.
     """
     try:
-        loader = es.EasyLoader(filename=filepath, sampleRate=16000, startTime=40, endTime=85)
+        # Preferred analysis window: 40s-85s (skips intros/outros). Short tracks
+        # yield little or no audio there (a 41s song gives ~1s, and anything
+        # under 40s gives none), which makes for a weak or empty VGGish input.
+        # Fall back to the whole track whenever the window is too short.
+        SAMPLE_RATE = 16000
+        MIN_FALLBACK_SAMPLES = 10 * SAMPLE_RATE  # need >=10s of audio to trust the window
+
+        loader = es.EasyLoader(filename=filepath, sampleRate=SAMPLE_RATE, startTime=40, endTime=85)
         audio = loader()
-        
+
+        if len(audio) < MIN_FALLBACK_SAMPLES:
+            audio = es.MonoLoader(filename=filepath, sampleRate=SAMPLE_RATE)()
+
+        if len(audio) == 0:
+            print(f"\n❌ ML Analysis failed for {os.path.basename(filepath)}: "
+                  f"no audio samples could be loaded", flush=True)
+            return None
+
         vggish = es.TensorflowPredictVGGish(
             graphFilename=VGGISH_MODEL, 
             output="model/vggish/embeddings"
