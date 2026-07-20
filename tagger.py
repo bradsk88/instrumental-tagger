@@ -1,9 +1,15 @@
 import os
 import sys
 import glob
+import wave
+import array
+import math
+import tempfile
+import shutil
 from mutagen.flac import FLAC
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3NoHeaderError
+from mutagen.wave import WAVE
+from mutagen.id3 import ID3NoHeaderError, TXXX
 
 # Forcefully silence Essentia's internal C++ logging before standard imports
 import essentia
@@ -50,6 +56,13 @@ def get_existing_tag(filepath, ext):
                     return "INSTRUMENTAL (1)" if val == "1" else "VOCAL (0)"
             except ID3NoHeaderError:
                 return None
+        elif ext == '.wav':
+            audio = WAVE(filepath)
+            if audio.tags is not None:
+                for frame in audio.tags.getall("TXXX"):
+                    if frame.desc == "INSTRUMENTAL":
+                        val = frame.text[0]
+                        return "INSTRUMENTAL (1)" if val == "1" else "VOCAL (0)"
     except Exception:
         return None
     return None
@@ -70,6 +83,13 @@ def tag_file(filepath, is_instrumental, ext):
             except ID3NoHeaderError:
                 audio = EasyID3()
             audio['instrumental'] = tag_val
+            audio.save()
+        elif ext == '.wav':
+            audio = WAVE(filepath)
+            if audio.tags is None:
+                audio.add_tags()
+            audio.tags.delall("TXXX:INSTRUMENTAL")
+            audio.tags.add(TXXX(encoding=3, desc="INSTRUMENTAL", text=[tag_val]))
             audio.save()
         return True
     except Exception as e:
@@ -112,7 +132,7 @@ def analyze_track_ml(filepath):
 
 def process_file(filepath):
     _, ext = os.path.splitext(filepath.lower())
-    if ext not in ['.mp3', '.flac']:
+    if ext not in ['.mp3', '.flac', '.wav']:
         return
 
     filename = os.path.basename(filepath)
@@ -147,7 +167,7 @@ def main():
     print("==================================================", flush=True)
     
     files = []
-    for ext in ['*.mp3', '*.flac']:
+    for ext in ['*.mp3', '*.flac', '*.wav']:
         files.extend(glob.glob(os.path.join(MUSIC_DIR, '**', ext), recursive=True))
     
     total = len(files)
