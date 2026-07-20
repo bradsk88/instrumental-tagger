@@ -220,8 +220,8 @@ def process_file(filepath):
     Processes a single audio file.
 
     Returns a dict describing a freshly ML-analyzed track
-    ({'filename', 'status', 'confidence'}) so the caller can summarize the newly
-    updated tracks at the end of the scan. Returns None for skipped or
+    ({'filename', 'is_instrumental', 'confidence'}) so the caller can summarize
+    the newly updated tracks at the end of the scan. Returns None for skipped or
     re-labeled-from-cache tracks (nothing new was analyzed).
     """
     _, ext = os.path.splitext(filepath.lower())
@@ -261,7 +261,8 @@ def process_file(filepath):
         if tag_file(filepath, is_instrumental, ext, confidence):
             status = "INSTRUMENTAL (1)" if is_instrumental else "VOCAL (0)"
             print(f" Done! -> Tagged as {status} (Conf: {confidence:.1f}%)", flush=True)
-            return {"filename": filename, "status": status, "confidence": confidence}
+            return {"filename": filename, "is_instrumental": is_instrumental,
+                    "confidence": confidence}
         else:
             print(" Failed to tag.", flush=True)
     else:
@@ -294,14 +295,15 @@ def main():
 
     print("\n🎉 Scan completed successfully! Shutting down container.", flush=True)
 
-    # Summarize the tracks that were actually analyzed this run (the rest were
-    # skipped or re-labeled from cache). Handy when only a handful were new.
-    if analyzed:
+    # Summarize the newly-found instrumentals from the tracks actually analyzed
+    # this run (the rest were skipped or re-labeled from cache). Handy when only
+    # a handful were new.
+    instrumentals = [e for e in analyzed if e["is_instrumental"]]
+    if instrumentals:
         print("\n==================================================", flush=True)
-        print(f"🔬 Analyzed {len(analyzed)} of {total} track(s) this run:", flush=True)
-        for entry in analyzed:
-            print(f"   • {entry['status']} (Conf: {entry['confidence']:.1f}%) "
-                  f"{entry['filename']}", flush=True)
+        print(f"🎼 Found {len(instrumentals)} new instrumental(s) this run:", flush=True)
+        for entry in instrumentals:
+            print(f"   • (Conf: {entry['confidence']:.1f}%) {entry['filename']}", flush=True)
         print("==================================================", flush=True)
 
 if __name__ == "__main__":
