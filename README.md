@@ -6,6 +6,20 @@ Essentia and to label them either as INSTRUMENTAL or VOCAL.
 This allows for other software (e.g. LMS/Lyrion Dynamic Playlist Creator)
 to generate playlists of "instrumental" music; great for focusing.
 
+# Usage
+
+The image is published to Docker Hub as
+[`bradsk88/instrumental-tagger`](https://hub.docker.com/r/bradsk88/instrumental-tagger).
+Mount your music library at `/music` and run:
+``
+```sh
+docker run --rm -v /path/to/music:/music \
+  -e INSTRUMENTAL_THRESHOLD=50 \
+  bradsk88/instrumental-tagger
+```
+
+The container scans `/music`, writes tags in place, and exits when finished.
+
 # Status
 
 Basic working container. Agentic coded. Will human review and remove any
